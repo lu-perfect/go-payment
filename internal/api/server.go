@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	_ "github.com/lib/pq"
+	"gobank/internal/api/middlewares"
+	"gobank/internal/auth/token"
 	db "gobank/internal/db/sqlc"
 	"gobank/internal/util"
 	"log"
@@ -15,14 +17,16 @@ import (
 // TODO: move to configuration
 
 const (
-	DBDriver      = "postgres"
-	DBSource      = "postgresql://root:secret@localhost:5432/gobank?sslmode=disable"
-	ServerAddress = "localhost:8080"
+	DBDriver          = "postgres"
+	DBSource          = "postgresql://root:secret@localhost:5432/gobank?sslmode=disable"
+	ServerAddress     = "localhost:8080"
+	TokenSymmetricKey = "NiIsInR5cCI6IgRG9lIiwiaWF0IjoxlK" // 32
 )
 
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	store      db.Store
+	router     *gin.Engine
+	tokenMaker token.Maker
 }
 
 func NewServer() *Server {
@@ -30,10 +34,12 @@ func NewServer() *Server {
 
 	conn := connectToDB()
 	store := db.NewSQLStore(conn)
+	tokenMaker := createTokenMaker()
 
 	s := &Server{
-		store:  store,
-		router: router,
+		store:      store,
+		router:     router,
+		tokenMaker: tokenMaker,
 	}
 
 	s.registerValidators()
@@ -56,18 +62,27 @@ func (s *Server) registerValidators() {
 }
 
 func (s *Server) setupRouter() {
+	authMiddleware := middlewares.AuthMiddleware(s.tokenMaker)
+
 	api := s.router.Group("/api")
 	{
+		auth := api.Group("/auth")
+		{
+			auth.POST("/sign-up", s.handleSignUp)
+		}
+
 		accounts := api.Group("/accounts")
+		accounts.Use(authMiddleware)
 		{
 			accounts.GET("/:id", s.handleGetAccountById)
-			accounts.POST("/", s.handleCreateAccount)
+			accounts.POST("", s.handleCreateAccount)
 		}
 
 		users := api.Group("/users")
+		users.Use(authMiddleware)
 		{
 			users.GET("/:id", s.handleGetUserById)
-			users.POST("/", s.handleCreateUser)
+			users.POST("", s.handleCreateUser)
 		}
 	}
 }
@@ -78,6 +93,18 @@ func connectToDB() *sql.DB {
 		log.Fatal("cannot connect to db:", err)
 	}
 	return conn
+}
+
+func createTokenMaker() token.Maker {
+	tokenMaker, err := token.NewPasetoMaker(TokenSymmetricKey)
+	if err != nil {
+		log.Fatal("cannot create token maker: %w", err)
+	}
+	return tokenMaker
+}
+
+func getAuthPayload(ctx *gin.Context) *token.Payload {
+	return ctx.MustGet(middlewares.AuthorizationPayloadKey).(*token.Payload)
 }
 
 func handleSuccess(ctx *gin.Context, obj any) {
@@ -100,6 +127,10 @@ func handleBadRequest(ctx *gin.Context, err error) {
 
 func handleNotFound(ctx *gin.Context, err error) {
 	handleError(ctx, err, http.StatusNotFound)
+}
+
+func handleForbidden(ctx *gin.Context, err error) {
+	handleError(ctx, err, http.StatusForbidden)
 }
 
 func handleInternalServerError(ctx *gin.Context, err error) {

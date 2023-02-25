@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/gin-gonic/gin"
 	db "gobank/internal/db/sqlc"
 )
@@ -29,12 +30,18 @@ func (s *Server) handleGetAccountById(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := getAuthPayload(ctx)
+	if account.OwnerID != authPayload.UserID {
+		err := errors.New("account doesn't belong to the authenticated user")
+		handleForbidden(ctx, err)
+		return
+	}
+
 	handleSuccess(ctx, account)
 }
 
 type createAccountRequest struct {
 	Currency string `json:"currency" binding:"required,currency"`
-	OwnerID  int64  `json:"owner_id" binding:"required"`
 }
 
 func (s *Server) handleCreateAccount(ctx *gin.Context) {
@@ -44,8 +51,9 @@ func (s *Server) handleCreateAccount(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := getAuthPayload(ctx)
 	account, err := s.store.CreateAccount(ctx, db.CreateAccountParams{
-		OwnerID:  req.OwnerID,
+		OwnerID:  authPayload.UserID,
 		Currency: req.Currency,
 	})
 

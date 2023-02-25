@@ -15,6 +15,8 @@ This is a simple api implementation of a local payment system in go, in which us
 - gin
 - sqlc 
 - migrate
+- paseto
+- jwt
 
 ## Features
 - [x] Database Migration

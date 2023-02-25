@@ -2,7 +2,9 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/gin-gonic/gin"
+	"gobank/internal/auth"
 	db "gobank/internal/db/sqlc"
 	"time"
 )
@@ -30,6 +32,13 @@ func (s *Server) handleGetUserById(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := getAuthPayload(ctx)
+	if user.ID != authPayload.UserID {
+		err := errors.New("access denied")
+		handleForbidden(ctx, err)
+		return
+	}
+
 	handleSuccess(ctx, user)
 }
 
@@ -46,12 +55,18 @@ func (s *Server) handleCreateUser(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: hash password
+	hashedPassword, err := auth.HashPassword(req.Password)
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	// TODO check role
 
 	user, err := s.store.CreateUser(ctx, db.CreateUserParams{
 		Username: req.Username,
 		Email:    req.Email,
-		Password: req.Password,
+		Password: hashedPassword,
 	})
 	if err != nil {
 		// TODO: handle db uniq error
@@ -64,6 +79,7 @@ func (s *Server) handleCreateUser(ctx *gin.Context) {
 }
 
 type userResponse struct {
+	ID                int64     `json:"id"`
 	Username          string    `json:"username"`
 	Email             string    `json:"email"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
@@ -72,6 +88,7 @@ type userResponse struct {
 
 func newUserResponse(user db.User) userResponse {
 	return userResponse{
+		ID:                user.ID,
 		Username:          user.Username,
 		Email:             user.Email,
 		PasswordChangedAt: user.PasswordChangedAt,
