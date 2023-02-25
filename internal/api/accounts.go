@@ -34,7 +34,7 @@ func (s *Server) handleGetAccountById(ctx *gin.Context) {
 
 type createAccountRequest struct {
 	Currency string `json:"currency" binding:"required,currency"`
-	Owner    string `json:"owner" binding:"required"`
+	OwnerID  int64  `json:"owner_id" binding:"required"`
 }
 
 func (s *Server) handleCreateAccount(ctx *gin.Context) {
@@ -45,7 +45,7 @@ func (s *Server) handleCreateAccount(ctx *gin.Context) {
 	}
 
 	account, err := s.store.CreateAccount(ctx, db.CreateAccountParams{
-		Owner:    req.Owner,
+		OwnerID:  req.OwnerID,
 		Currency: req.Currency,
 	})
 

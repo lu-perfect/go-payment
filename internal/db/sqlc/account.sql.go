@@ -12,26 +12,26 @@ import (
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts
 (
-    owner,
+    owner_id,
     balance,
     currency
 )
 VALUES ($1, $2, $3)
-RETURNING id, owner, balance, currency, created_at
+RETURNING id, owner_id, balance, currency, created_at
 `
 
 type CreateAccountParams struct {
-	Owner    string `json:"owner"`
+	OwnerID  int64  `json:"owner_id"`
 	Balance  int64  `json:"balance"`
 	Currency string `json:"currency"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
-	row := q.db.QueryRowContext(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
+	row := q.db.QueryRowContext(ctx, createAccount, arg.OwnerID, arg.Balance, arg.Currency)
 	var i Account
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
+		&i.OwnerID,
 		&i.Balance,
 		&i.Currency,
 		&i.CreatedAt,
@@ -40,7 +40,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, owner, balance, currency, created_at FROM accounts
+SELECT id, owner_id, balance, currency, created_at FROM accounts
 WHERE id = $1
 LIMIT 1
 `
@@ -50,7 +50,7 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
 	var i Account
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
+		&i.OwnerID,
 		&i.Balance,
 		&i.Currency,
 		&i.CreatedAt,

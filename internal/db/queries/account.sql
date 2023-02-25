@@ -6,7 +6,7 @@ LIMIT 1;
 -- name: CreateAccount :one
 INSERT INTO accounts
 (
-    owner,
+    owner_id,
     balance,
     currency
 )
