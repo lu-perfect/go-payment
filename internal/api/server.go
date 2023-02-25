@@ -70,6 +70,7 @@ func (s *Server) setupRouter() {
 		{
 			auth.POST("/sign-up", s.handleSignUp)
 			auth.POST("/sign-in", s.handleSignIn)
+			auth.POST("/refresh", s.handleRefreshAccessToken)
 		}
 
 		accounts := api.Group("/accounts")

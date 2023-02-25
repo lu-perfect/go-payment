@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gobank/internal/auth"
@@ -130,6 +131,75 @@ func (s *Server) handleSignIn(ctx *gin.Context) {
 
 	res := newAuthResponse(session.ID, user, accessToken, accessTokenPayload.ExpiredAt, refreshToken, refreshTokenPayload.ExpiredAt)
 	handleCreated(ctx, res)
+}
+
+type refreshAccessTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type refreshAccessTokenResponse struct {
+	AccessToken          string    `json:"access_token"`
+	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
+}
+
+func (s *Server) handleRefreshAccessToken(ctx *gin.Context) {
+	var req refreshAccessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		handleBadRequest(ctx, err)
+		return
+	}
+
+	refreshPayload, err := s.tokenMaker.VerifyToken(req.RefreshToken)
+	if err != nil {
+		handleUnauthorized(ctx, err)
+		return
+	}
+
+	session, err := s.store.GetSession(ctx, refreshPayload.ID)
+	if err == sql.ErrNoRows {
+		handleNotFound(ctx, err)
+		return
+	}
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	if session.IsRevoked {
+		err := fmt.Errorf("blocked session")
+		handleUnauthorized(ctx, err)
+		return
+	}
+
+	if session.UserID != refreshPayload.UserID || session.Username != refreshPayload.Username {
+		err := fmt.Errorf("incorrect session user")
+		handleUnauthorized(ctx, err)
+		return
+	}
+
+	if session.RefreshToken != req.RefreshToken {
+		err := fmt.Errorf("mismatched session refreshPayload")
+		handleUnauthorized(ctx, err)
+		return
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		err := fmt.Errorf("expired session")
+		handleUnauthorized(ctx, err)
+		return
+	}
+
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(refreshPayload.UserID, refreshPayload.Username, AccessTokenDuration)
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	res := refreshAccessTokenResponse{
+		AccessToken:          accessToken,
+		AccessTokenExpiresAt: accessTokenPayload.ExpiredAt,
+	}
+	handleSuccess(ctx, res)
 }
 
 type authResponse struct {
