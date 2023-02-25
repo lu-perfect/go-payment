@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"gobank/internal/api/middlewares"
 	"gobank/internal/auth/token"
@@ -107,6 +108,17 @@ func createTokenMaker() token.Maker {
 
 func getAuthPayload(ctx *gin.Context) *token.Payload {
 	return ctx.MustGet(middlewares.AuthorizationPayloadKey).(*token.Payload)
+}
+
+func isDBUniqueError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if pqErr, ok := err.(*pq.Error); ok {
+		code := pqErr.Code.Name()
+		return code == "unique_violation" || code == "foreign_key_violation"
+	}
+	return false
 }
 
 func handleSuccess(ctx *gin.Context, obj any) {

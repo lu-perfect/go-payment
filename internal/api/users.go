@@ -69,8 +69,13 @@ func (s *Server) handleCreateUser(ctx *gin.Context) {
 		Email:    req.Email,
 		Password: hashedPassword,
 	})
+
+	if isDBUniqueError(err) {
+		handleForbidden(ctx, err)
+		return
+	}
+
 	if err != nil {
-		// TODO: handle db uniq error
 		handleInternalServerError(ctx, err)
 		return
 	}

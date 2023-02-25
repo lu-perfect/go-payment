@@ -57,9 +57,14 @@ func (s *Server) handleCreateAccount(ctx *gin.Context) {
 		Currency: req.Currency,
 	})
 
+	if isDBUniqueError(err) {
+		handleForbidden(ctx, err)
+		return
+	}
+
 	if err != nil {
-		// TODO: handle unique db error
 		handleInternalServerError(ctx, err)
+		return
 	}
 
 	handleCreated(ctx, account)
