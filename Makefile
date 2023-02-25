@@ -45,4 +45,7 @@ migrate-down-all:
 dev:
 	go run cmd/main.go
 
-.PHONY: dev run-postgres create-db drop-db sqlc migrate-new migrate-down-all migrate-down migrate-up migrate-up-all
+test:
+	go test -cover ./...
+
+.PHONY: dev test run-postgres create-db drop-db sqlc migrate-new migrate-down-all migrate-down migrate-up migrate-up-all

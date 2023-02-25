@@ -7,7 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	_ "github.com/lib/pq"
 	db "gobank/internal/db/sqlc"
-	"gobank/internal/util/validaton"
+	"gobank/internal/util"
 	"log"
 	"net/http"
 )
@@ -48,7 +48,7 @@ func (s *Server) Run() error {
 
 func (s *Server) registerValidators() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		err := v.RegisterValidation("currency", validaton.CurrencyValidator)
+		err := v.RegisterValidation("currency", util.CurrencyValidator)
 		if err != nil {
 			log.Fatal("cannot register currency validator: ", err)
 		}
