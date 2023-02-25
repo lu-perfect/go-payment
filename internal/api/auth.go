@@ -10,11 +10,6 @@ import (
 	"time"
 )
 
-const (
-	AccessTokenDuration  = time.Minute * 15
-	RefreshTokenDuration = time.Hour * 360
-)
-
 type signUpRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Email    string `json:"email" binding:"required,email"`
@@ -45,13 +40,13 @@ func (s *Server) handleSignUp(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, AccessTokenDuration)
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, s.config.AccessTokenDuration)
 	if err != nil {
 		handleInternalServerError(ctx, err)
 		return
 	}
 
-	refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, RefreshTokenDuration)
+	refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, s.config.RefreshTokenDuration)
 	if err != nil {
 		handleInternalServerError(ctx, err)
 		return
@@ -103,13 +98,13 @@ func (s *Server) handleSignIn(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, AccessTokenDuration)
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, s.config.AccessTokenDuration)
 	if err != nil {
 		handleInternalServerError(ctx, err)
 		return
 	}
 
-	refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, RefreshTokenDuration)
+	refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, s.config.RefreshTokenDuration)
 	if err != nil {
 		handleInternalServerError(ctx, err)
 		return
@@ -189,7 +184,7 @@ func (s *Server) handleRefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(refreshPayload.UserID, refreshPayload.Username, AccessTokenDuration)
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(refreshPayload.UserID, refreshPayload.Username, s.config.AccessTokenDuration)
 	if err != nil {
 		handleInternalServerError(ctx, err)
 		return

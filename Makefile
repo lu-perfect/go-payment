@@ -1,13 +1,4 @@
-DOCKER_NETWORK=gobank-network
-DOCKER_DB_IMAGE=postgres14
-
-MIGRATIONS_DIR=internal/db/migrations
-
-DB_NAME=gobank
-DB_USER=root
-DB_PASS=secret
-
-DB_URL=postgresql://$(DB_USER):$(DB_PASS)@localhost:5432/$(DB_NAME)?sslmode=disable
+include app.env
 
 # docker images
 
@@ -29,16 +20,16 @@ migrate-new:
 	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
 
 migrate-up:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose up 1
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_SOURCE)" -verbose up 1
 
 migrate-up-all:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose up
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_SOURCE)" -verbose up
 
 migrate-down:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down 1
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_SOURCE)" -verbose down 1
 
 migrate-down-all:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_SOURCE)" -verbose down
 
 # run commands
 

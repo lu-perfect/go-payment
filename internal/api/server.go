@@ -15,34 +15,20 @@ import (
 	"net/http"
 )
 
-// TODO: move to configuration
-
-const (
-	DBDriver          = "postgres"
-	DBSource          = "postgresql://root:secret@localhost:5432/gobank?sslmode=disable"
-	ServerAddress     = "localhost:8080"
-	TokenSymmetricKey = "NiIsInR5cCI6IgRG9lIiwiaWF0IjoxlK" // 32
-)
-
 type Server struct {
 	store      db.Store
 	router     *gin.Engine
 	tokenMaker token.Maker
+	config     util.Config
 }
 
-func NewServer() *Server {
-	router := gin.New()
-
-	conn := connectToDB()
-	store := db.NewSQLStore(conn)
-	tokenMaker := createTokenMaker()
-
+func NewServer(config util.Config) *Server {
 	s := &Server{
-		store:      store,
-		router:     router,
-		tokenMaker: tokenMaker,
+		config: config,
 	}
 
+	s.connectToDB()
+	s.addTokenMaker()
 	s.registerValidators()
 	s.setupRouter()
 
@@ -50,7 +36,7 @@ func NewServer() *Server {
 }
 
 func (s *Server) Run() error {
-	return s.router.Run(ServerAddress)
+	return s.router.Run(s.config.ServerAddress)
 }
 
 func (s *Server) registerValidators() {
@@ -63,9 +49,10 @@ func (s *Server) registerValidators() {
 }
 
 func (s *Server) setupRouter() {
+	router := gin.New()
 	authMiddleware := middlewares.AuthMiddleware(s.tokenMaker)
 
-	api := s.router.Group("/api")
+	api := router.Group("/api")
 	{
 		auth := api.Group("/auth")
 		{
@@ -88,22 +75,24 @@ func (s *Server) setupRouter() {
 			users.POST("", s.handleCreateUser)
 		}
 	}
+
+	s.router = router
 }
 
-func connectToDB() *sql.DB {
-	conn, err := sql.Open(DBDriver, DBSource)
+func (s *Server) connectToDB() {
+	conn, err := sql.Open(s.config.DBDriver, s.config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
 	}
-	return conn
+	s.store = db.NewSQLStore(conn)
 }
 
-func createTokenMaker() token.Maker {
-	tokenMaker, err := token.NewPasetoMaker(TokenSymmetricKey)
+func (s *Server) addTokenMaker() {
+	tokenMaker, err := token.NewPasetoMaker(s.config.TokenSymmetricKey)
 	if err != nil {
 		log.Fatal("cannot create token maker: %w", err)
 	}
-	return tokenMaker
+	s.tokenMaker = tokenMaker
 }
 
 func getAuthPayload(ctx *gin.Context) *token.Payload {
