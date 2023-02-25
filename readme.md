@@ -26,6 +26,7 @@ This is a simple api implementation of a local payment system in go, in which us
 - [x] Configuration
 - [x] Error Handling
 - [x] Validation
+- [x] Graceful shutdown
 
 ## Roadmap
 

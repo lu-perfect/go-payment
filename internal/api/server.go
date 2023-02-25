@@ -1,7 +1,10 @@
 package api
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -13,6 +16,10 @@ import (
 	"gobank/internal/util"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type Server struct {
@@ -35,8 +42,35 @@ func NewServer(config util.Config) *Server {
 	return s
 }
 
-func (s *Server) Run() error {
-	return s.router.Run(s.config.ServerAddress)
+func (s *Server) Run() {
+	httpServer := &http.Server{
+		Addr:    s.config.ServerAddress,
+		Handler: s.router,
+	}
+
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Fatal("Server ListenAndServe error")
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	fmt.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpServer.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown.")
+	}
+
+	fmt.Println("Server exiting.")
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.Shutdown(ctx)
 }
 
 func (s *Server) registerValidators() {

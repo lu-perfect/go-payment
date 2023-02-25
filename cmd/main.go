@@ -12,9 +12,5 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
-	s := api.NewServer(config)
-	err = s.Run()
-	if err != nil {
-		log.Fatal("cannot start server: ", err)
-	}
+	api.NewServer(config).Run()
 }
