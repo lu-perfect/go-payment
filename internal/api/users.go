@@ -39,7 +39,8 @@ func (s *Server) handleGetUserById(ctx *gin.Context) {
 		return
 	}
 
-	handleSuccess(ctx, user)
+	res := newUserResponse(user)
+	handleSuccess(ctx, res)
 }
 
 type createUserRequest struct {

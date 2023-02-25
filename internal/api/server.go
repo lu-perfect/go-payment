@@ -69,6 +69,7 @@ func (s *Server) setupRouter() {
 		auth := api.Group("/auth")
 		{
 			auth.POST("/sign-up", s.handleSignUp)
+			auth.POST("/sign-in", s.handleSignIn)
 		}
 
 		accounts := api.Group("/accounts")
@@ -131,6 +132,10 @@ func handleNotFound(ctx *gin.Context, err error) {
 
 func handleForbidden(ctx *gin.Context, err error) {
 	handleError(ctx, err, http.StatusForbidden)
+}
+
+func handleUnauthorized(ctx *gin.Context, err error) {
+	handleError(ctx, err, http.StatusUnauthorized)
 }
 
 func handleInternalServerError(ctx *gin.Context, err error) {

@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gobank/internal/auth"
 	db "gobank/internal/db/sqlc"
 	"time"
@@ -54,12 +56,84 @@ func (s *Server) handleSignUp(ctx *gin.Context) {
 		return
 	}
 
-	res := newAuthResponse(user, accessToken, accessTokenPayload.ExpiredAt, refreshToken, refreshTokenPayload.ExpiredAt)
+	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
+		ID:           refreshTokenPayload.ID,
+		UserID:       user.ID,
+		Username:     user.Username,
+		RefreshToken: refreshToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		ExpiresAt:    refreshTokenPayload.ExpiredAt,
+	})
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	res := newAuthResponse(session.ID, user, accessToken, accessTokenPayload.ExpiredAt, refreshToken, refreshTokenPayload.ExpiredAt)
+	handleCreated(ctx, res)
+}
+
+type signInRequest struct {
+	Username string `json:"username" binding:"required,alphanum"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+func (s *Server) handleSignIn(ctx *gin.Context) {
+	var req signInRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		handleBadRequest(ctx, err)
+		return
+	}
+
+	user, err := s.store.GetUserByUsername(ctx, req.Username)
+	if err == sql.ErrNoRows {
+		handleNotFound(ctx, err)
+		return
+	}
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	err = auth.CheckPassword(req.Password, user.Password)
+	if err != nil {
+		handleUnauthorized(ctx, err)
+		return
+	}
+
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, AccessTokenDuration)
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(user.ID, user.Username, RefreshTokenDuration)
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
+		ID:           refreshTokenPayload.ID,
+		UserID:       user.ID,
+		Username:     user.Username,
+		RefreshToken: refreshToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		ExpiresAt:    refreshTokenPayload.ExpiredAt,
+	})
+	if err != nil {
+		handleInternalServerError(ctx, err)
+		return
+	}
+
+	res := newAuthResponse(session.ID, user, accessToken, accessTokenPayload.ExpiredAt, refreshToken, refreshTokenPayload.ExpiredAt)
 	handleCreated(ctx, res)
 }
 
 type authResponse struct {
-	// SessionID uuid.UUID `json:"session_id"` TODO
+	SessionID uuid.UUID `json:"session_id"`
 
 	AccessToken          string    `json:"access_token"`
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
@@ -70,9 +144,9 @@ type authResponse struct {
 	User userResponse `json:"user"`
 }
 
-func newAuthResponse(user db.User, accessToken string, accessTokenExpiredAt time.Time, refreshToken string, refreshTokenExpiredAt time.Time) authResponse {
+func newAuthResponse(sessionID uuid.UUID, user db.User, accessToken string, accessTokenExpiredAt time.Time, refreshToken string, refreshTokenExpiredAt time.Time) authResponse {
 	return authResponse{
-		// SessionID:             session.ID, TODO
+		SessionID:             sessionID,
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenExpiredAt,
 		RefreshToken:          refreshToken,
