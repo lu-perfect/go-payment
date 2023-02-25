@@ -17,11 +17,15 @@ This is a simple api implementation of a local payment system in go, in which us
 - migrate
 - paseto
 - jwt
+- viper
 
 ## Features
 - [x] Database Migration
 - [x] Makefile
 - [x] JWT & Paseto
+- [x] Configuration
+- [x] Error Handling
+- [x] Validation
 
 ## Roadmap
 
@@ -29,11 +33,8 @@ This is a simple api implementation of a local payment system in go, in which us
 - [ ] Pagination
 - [ ] Data Seed
 - [ ] CLI
-- [ ] Configuration
 - [ ] Versioning
 - [ ] Logging
-- [ ] Validation
-- [ ] Error Handling
 - [ ] Health Check
 - [ ] SMTP
 - [ ] Jobs
