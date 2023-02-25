@@ -12,8 +12,9 @@ import (
 // TODO: move to configuration
 
 const (
-	DBDriver = "postgres"
-	DBSource = "postgresql://root:secret@localhost:5432/gobank?sslmode=disable"
+	DBDriver      = "postgres"
+	DBSource      = "postgresql://root:secret@localhost:5432/gobank?sslmode=disable"
+	ServerAddress = "localhost:8080"
 )
 
 type Server struct {
@@ -24,11 +25,7 @@ type Server struct {
 func NewServer() *Server {
 	router := gin.New()
 
-	conn, err := sql.Open(DBDriver, DBSource)
-	if err != nil {
-		log.Fatal("cannot connect to db:", err)
-	}
-
+	conn := connectToDB()
 	store := db.NewSQLStore(conn)
 
 	s := &Server{
@@ -36,7 +33,17 @@ func NewServer() *Server {
 		router: router,
 	}
 
-	api := router.Group("/api")
+	s.setupRouter()
+
+	return s
+}
+
+func (s *Server) Run() error {
+	return s.router.Run(ServerAddress)
+}
+
+func (s *Server) setupRouter() {
+	api := s.router.Group("/api")
 	{
 		accounts := api.Group("/accounts")
 		{
@@ -44,12 +51,14 @@ func NewServer() *Server {
 			accounts.POST("/", s.handleCreateAccount)
 		}
 	}
-
-	return s
 }
 
-func (s *Server) Run(address string) error {
-	return s.router.Run(address)
+func connectToDB() *sql.DB {
+	conn, err := sql.Open(DBDriver, DBSource)
+	if err != nil {
+		log.Fatal("cannot connect to db:", err)
+	}
+	return conn
 }
 
 func handleSuccess(ctx *gin.Context, obj any) {
