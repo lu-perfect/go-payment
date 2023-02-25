@@ -20,6 +20,8 @@ This is a simple api implementation of a local payment system in go, in which us
 
 ## Features
 - [x] Database Migration
+- [x] Makefile
+- [x] JWT & Paseto
 
 ## Roadmap
 
@@ -42,6 +44,5 @@ This is a simple api implementation of a local payment system in go, in which us
 - [ ] 100% coverage
 
 ### Deployment
-- [ ] Makefile
 - [ ] Kubernetes 
 - [ ] Docker & Docker Compose
