@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gobank/internal/server"
+	"gobank/internal/api"
 	"log"
 )
 
@@ -12,9 +12,9 @@ const (
 )
 
 func main() {
-	s := server.New()
+	s := api.NewServer()
 	err := s.Run(ServerAddress)
 	if err != nil {
-		log.Fatal("cannot start server:", err)
+		log.Fatal("cannot start api:", err)
 	}
 }
