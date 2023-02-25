@@ -33,8 +33,7 @@ func (s *Server) handleGetAccountById(ctx *gin.Context) {
 }
 
 type createAccountRequest struct {
-	// TODO: validate available currencies
-	Currency string `json:"currency" binding:"required"`
+	Currency string `json:"currency" binding:"required,currency"`
 	Owner    string `json:"owner" binding:"required"`
 }
 

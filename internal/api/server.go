@@ -3,8 +3,11 @@ package api
 import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	_ "github.com/lib/pq"
 	db "gobank/internal/db/sqlc"
+	"gobank/internal/util/validaton"
 	"log"
 	"net/http"
 )
@@ -33,6 +36,7 @@ func NewServer() *Server {
 		router: router,
 	}
 
+	s.registerValidators()
 	s.setupRouter()
 
 	return s
@@ -40,6 +44,15 @@ func NewServer() *Server {
 
 func (s *Server) Run() error {
 	return s.router.Run(ServerAddress)
+}
+
+func (s *Server) registerValidators() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("currency", validaton.CurrencyValidator)
+		if err != nil {
+			log.Fatal("cannot register currency validator: ", err)
+		}
+	}
 }
 
 func (s *Server) setupRouter() {
