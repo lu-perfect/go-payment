@@ -11,11 +11,18 @@ This is a simple api implementation of a local payment system in go, in which us
 
 - todo
 
+## Technologies
+- gin
+- sqlc 
+- migrate
+
+## Features
+- [x] Database Migration
+
 ## Roadmap
 
 ### Features
 - [ ] Pagination
-- [ ] Database Migration
 - [ ] Data Seed
 - [ ] CLI
 - [ ] Configuration
@@ -30,6 +37,7 @@ This is a simple api implementation of a local payment system in go, in which us
 ### Tests
 - [ ] Unit Test
 - [ ] Integration Test
+- [ ] 100% coverage
 
 ### Deployment
 - [ ] Makefile
