@@ -63,6 +63,12 @@ func (s *Server) setupRouter() {
 			accounts.GET("/:id", s.handleGetAccountById)
 			accounts.POST("/", s.handleCreateAccount)
 		}
+
+		users := api.Group("/users")
+		{
+			users.GET("/:id", s.handleGetUserById)
+			users.POST("/", s.handleCreateUser)
+		}
 	}
 }
 
